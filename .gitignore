@@ -24,3 +24,4 @@ pnpm-debug.log*
 
 # Example files
 src/store/module-template
+constants.js

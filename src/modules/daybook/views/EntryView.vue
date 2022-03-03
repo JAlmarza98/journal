@@ -8,7 +8,7 @@
             </div>
 
             <div>
-                <button class="btn btn-danger mx-2">
+                <button v-if="entry.id" class="btn btn-danger mx-2" @click="onDeleteEntry">
                     Borrar
                     <i class="fas fa-trash-alt"></i>
                 </button>
@@ -22,14 +22,15 @@
         <div class="d-flex flec-column px-3 h-75">
             <textarea placeholder="¿Qué sucedió hoy?" v-model="entry.text"></textarea>
         </div>
-        <Fab icon="fa-save" color="btn-success" title="Guardar entrada"/>
+        <Fab icon="fa-save" color="btn-success" title="Guardar entrada" @on:click="saveEntry"/>
         <img src="https://www.imgacademy.com/themes/custom/imgacademy/images/helpbox-contact.jpg" alt="entry-picture" class="img-thumbnail">
     </div>
 </template>
 
 <script>
 import { defineAsyncComponent } from 'vue';
-import { mapGetters } from 'vuex'
+import { mapGetters, mapActions } from 'vuex'
+import Swal from 'sweetalert2'
 
 import getDayMonthYear from '../helpers/getDayMonthYear'
 
@@ -64,11 +65,58 @@ export default {
         }
     },
     methods: {
+        ...mapActions('journal', ['updateEntry', 'createEntry', 'deleteEntry']),
         loadEntry() {
-            const entry = this.getEntryById( this.id )
-            if( !entry ) this.$router.push({name: 'no-entry'})
+            let entry;
+            if (this.id === 'new') {
+                entry = {
+                    text: '',
+                    date: new Date().getTime()
+                }
+            } else {
+                entry = this.getEntryById( this.id )
+                if( !entry ) this.$router.push({name: 'no-entry'})
+            }
 
             this.entry = entry
+        },
+        async saveEntry() {
+
+            new Swal({
+                title: 'Espere por favor',
+                allowOutsideClick: false
+            })
+            Swal.showLoading()
+
+            if (this.entry.id) {
+                this.updateEntry(this.entry)
+            } else {
+                const  id = await this.createEntry(this.entry)
+                this.$router.push({name: 'entry', params: { id } })
+            }
+
+            Swal.fire('Guardado','Entrada registrada con éxito', 'success')
+        },
+        async onDeleteEntry() {
+            const { isConfirmed } = await Swal.fire({
+                title: '¿Está seguro?',
+                text: 'Una vez eliminada la entrada, no podrá recuperarla',
+                showDenyButton: true,
+                confirmButtonText: 'Si, estoy seguro'
+            })
+
+            if ( isConfirmed ){
+                new Swal({
+                    title: 'Espere por favor',
+                    allowOutsideClick: false
+                })
+                Swal.showLoading()
+
+                await this.deleteEntry(this.entry.id)
+                this.$router.push({ name: 'no-entry' })
+                Swal.fire('Entrada eliminada', '', 'success')
+            }
+            
         }
     },
     created() {
