@@ -8,11 +8,12 @@
             </div>
 
             <div>
+                <input type="file" @change="onSelectedImage" accept="image/*" ref="imageSelector" v-show="false">
                 <button v-if="entry.id" class="btn btn-danger mx-2" @click="onDeleteEntry">
                     Borrar
                     <i class="fas fa-trash-alt"></i>
                 </button>
-                <button class="btn btn-primary">
+                <button class="btn btn-primary" @click="onSelectImage">
                     Subir foto
                     <i class="fas fa-upload"></i>
                 </button>
@@ -23,7 +24,12 @@
             <textarea placeholder="¿Qué sucedió hoy?" v-model="entry.text"></textarea>
         </div>
         <Fab icon="fa-save" color="btn-success" title="Guardar entrada" @on:click="saveEntry"/>
-        <img src="https://www.imgacademy.com/themes/custom/imgacademy/images/helpbox-contact.jpg" alt="entry-picture" class="img-thumbnail">
+        <img v-if="entry.picture && (!localImage || localImage === null)" :src="entry.picture" alt="entry-picture" class="img-thumbnail img-position">
+        <div v-if="localImage" class="img-position">
+            <i class="fas fa-times-circle fa-lg text-danger custom-badge pointer" @click="deleteImage"></i>
+            <img :src="localImage" alt="entry-picture" class="img-thumbnail">
+        </div>
+        
     </div>
 </template>
 
@@ -33,6 +39,7 @@ import { mapGetters, mapActions } from 'vuex'
 import Swal from 'sweetalert2'
 
 import getDayMonthYear from '../helpers/getDayMonthYear'
+import uploadImage from '../helpers/uploadImage'
 
 export default {
     props: {
@@ -46,7 +53,9 @@ export default {
     },
     data() {
         return {
-            entry: null
+            entry: null,
+            localImage: null,
+            file: null
         }
     },
     computed:{
@@ -88,6 +97,9 @@ export default {
             })
             Swal.showLoading()
 
+            const picture = await uploadImage( this.file )
+            this.entry.picture = picture
+
             if (this.entry.id) {
                 this.updateEntry(this.entry)
             } else {
@@ -96,6 +108,7 @@ export default {
             }
 
             Swal.fire('Guardado','Entrada registrada con éxito', 'success')
+            this.file = null
         },
         async onDeleteEntry() {
             const { isConfirmed } = await Swal.fire({
@@ -115,8 +128,31 @@ export default {
                 await this.deleteEntry(this.entry.id)
                 this.$router.push({ name: 'no-entry' })
                 Swal.fire('Entrada eliminada', '', 'success')
+            }     
+        },
+        onSelectImage() {
+            this.$refs.imageSelector.click()
+        },
+        onSelectedImage( event ) {
+
+            const file = event.target.files[0]
+            if( !file ) {
+                this.localImage = null
+                this.file = null
+                return
             }
-            
+
+            this.file = file
+
+            const fr = new FileReader()
+            fr.onload = () => this.localImage = fr.result
+            fr.readAsDataURL( file )
+        },
+        deleteImage() {
+           
+            this.localImage = null
+            this.file = null
+               
         }
     },
     created() {
@@ -134,7 +170,7 @@ export default {
 textarea {
     font-size: 20px;
     border: none;
-    height: calc(100vh - 150px);
+    height: calc(100vh - 250px);
     width: 100%;
 
     &:focus {
@@ -142,12 +178,18 @@ textarea {
     }
 }
 
-img {
+.img-position {
     width: 200px;
     position: fixed;
     bottom: 150px;
     right: 20px;
     box-shadow: 0px 5px 10px rgba($color: #000000, $alpha: 0.2);
+}
+
+.custom-badge{
+    position: absolute;
+    top:-7px;
+    right: -5px;
 }
 
 </style>
