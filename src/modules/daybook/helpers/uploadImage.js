@@ -15,8 +15,6 @@ const uploadImage = async ( file ) => {
 
         const {data} = await cloudinaryApi.post('/upload', formData)
 
-        console.log(data);
-
         return data.secure_url
         
     } catch (error) {
