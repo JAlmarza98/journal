@@ -1,9 +1,17 @@
 import axios from 'axios'
-import { baseURL } from '../constants'
+import { journalURL } from '../constants'
 //Just for protect my firebase url
 
 const journalApi = axios.create({
-    baseURL
+    baseURL: journalURL
+})
+
+journalApi.interceptors.request.use( (config) => {
+    config.params = {
+        auth: localStorage.getItem('idToken')
+    }
+
+    return config
 })
 
 export default journalApi
